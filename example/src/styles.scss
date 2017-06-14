@@ -1,0 +1,33 @@
+body {
+    background-color: #ddd;
+    & {
+        margin-top: 20px;
+    }
+}
+
+.menu-container {
+    background-color: #eee;
+    padding: 2px;
+    overflow: hidden;
+    position: relative;
+    height: 300px;
+    > * {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        width: 100%;
+        display: inline-block;
+    }
+}
+
+.flex-h {
+    display: flex;
+    align-items: center;
+    &.spread {
+        justify-content: space-between;
+    }
+}
+
+.filler {
+    background-color: #555;
+}
