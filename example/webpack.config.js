@@ -94,7 +94,8 @@ if (TARGET_ENV === 'development') {
                             loader: "elm-webpack-loader",
                             // add Elm's debug overlay to output
                             options: {
-                                debug: true
+                                debug: true,
+                                warn: true
                             }
                         }
                     ]

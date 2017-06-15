@@ -18,6 +18,13 @@ body {
         width: 100%;
         display: inline-block;
     }
+    .page {
+        display: flex;
+        flex-direction: column;
+        font-size: 20px;
+        justify-content: center;
+        align-items: center;
+    }
 }
 
 .flex-h {

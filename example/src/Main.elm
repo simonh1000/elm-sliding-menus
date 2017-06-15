@@ -16,4 +16,4 @@ main =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Animation.subscription Animate [ model.current, model.next ]
+    Animation.subscription Animate [ model.previous, model.current, model.next ]
