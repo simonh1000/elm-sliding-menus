@@ -9,8 +9,10 @@ import Animation.Messenger
 import Animation.Spring.Presets exposing (..)
 
 
-type MenuChoice
-    = MenuChoice (List Int) (Maybe Int) Int (Maybe Int)
+type
+    MenuChoice
+    -- List Int in reverse order
+    = MenuChoice (List Int) Int (Maybe Int)
 
 
 type alias Model =
@@ -25,7 +27,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     ( { path = []
-      , pages = MenuChoice [] Nothing 0 Nothing
+      , pages = MenuChoice [] 0 Nothing
       , previous =
             mkLeft -100.0
       , current =
@@ -76,6 +78,7 @@ menu =
 type Msg
     = MoveUp
     | MoveDown
+    | SwitchUp
     | SwitchDown
     | Animate Animation.Msg
 
@@ -84,64 +87,70 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
     case message of
         MoveUp ->
-            ( model, Cmd.none )
+            let
+                previous =
+                    queueWithMsg SwitchUp 0.0 model.previous
 
-        -- let
-        --     current =
-        --         animateCurrent -100.0 model.current
-        --
-        --     next =
-        --         queueAnimation 0.0 model.next
-        --
-        --     pages =
-        --         L.take (L.length model.pages - 1) model.pages
-        -- in
-        --     ( { model | pages = pages, current = current, next = next }, Cmd.none )
+                current =
+                    animateCurrent 100.0 model.current
+            in
+                ( { model | previous = previous, current = current }, Cmd.none )
+
         MoveDown ->
             let
                 current =
                     animateCurrent -100.0 model.current
 
                 next =
-                    queueAnimation 0.0 model.next
+                    queueWithMsg SwitchDown 0.0 model.next
 
                 pages =
                     case model.pages of
-                        MenuChoice ps mbp curr _ ->
-                            MenuChoice ps mbp curr (Just <| curr + 1)
+                        MenuChoice ps curr _ ->
+                            MenuChoice ps curr (Just <| curr + 1)
             in
                 ( { model | pages = pages, current = current, next = next }, Cmd.none )
 
         SwitchDown ->
             -- Fired after transition down menu
             let
-                _ =
-                    Debug.log "SwitchDown" "****"
-
                 pages =
                     case model.pages of
-                        MenuChoice ps mbp curr (Just nxt) ->
-                            MenuChoice
-                                (ps ++ (mbp |> Maybe.map L.singleton |> Maybe.withDefault []))
-                                (Just curr)
-                                nxt
-                                Nothing
+                        MenuChoice ps curr (Just nxt) ->
+                            MenuChoice (curr :: ps) nxt Nothing
 
                         _ ->
                             model.pages
             in
                 ( { model | pages = pages } |> reset, Cmd.none )
 
+        SwitchUp ->
+            -- Fired after transition up menu
+            let
+                pages =
+                    case model.pages of
+                        MenuChoice (p :: ps) _ _ ->
+                            MenuChoice ps p Nothing
+
+                        _ ->
+                            Debug.log "Unexpected error MoveUp" model.pages
+            in
+                ( { model | pages = pages } |> reset, Cmd.none )
+
         Animate animMsg ->
             let
-                ( next, cmd ) =
+                ( next, cmdNext ) =
                     Animation.Messenger.update animMsg model.next
+
+                ( previous, cmdPrev ) =
+                    Animation.Messenger.update animMsg model.previous
             in
                 ( { model
-                    | current = Animation.update animMsg model.current
+                    | previous = previous
+                    , current = Animation.update animMsg model.current
                     , next = next
                   }
-                , cmd
+                , Cmd.batch [ cmdNext, cmdPrev ]
                 )
 
 
@@ -149,11 +158,11 @@ animateCurrent x stateAnimation =
     Animation.queue [ Animation.toWith myEasing [ Animation.left (percent x) ] ] stateAnimation
 
 
-queueAnimation : Float -> Animation.Messenger.State Msg -> Animation.Messenger.State Msg
-queueAnimation x state =
+queueWithMsg : Msg -> Float -> Animation.Messenger.State Msg -> Animation.Messenger.State Msg
+queueWithMsg msg x state =
     Animation.queue
         [ Animation.toWith myEasing [ Animation.left (percent x) ]
-        , Animation.Messenger.send SwitchDown
+        , Animation.Messenger.send msg
         ]
         state
 
@@ -168,7 +177,7 @@ myEasing =
 
 getCurrent mc =
     case mc of
-        MenuChoice _ _ curr _ ->
+        MenuChoice _ curr _ ->
             curr
 
 
@@ -193,22 +202,20 @@ view model =
 
 viewPages model =
     case model.pages of
-        MenuChoice _ mbp curr mbn ->
-            let
-                prev =
-                    mbp |> Maybe.map (mkPage model.previous) |> Maybe.withDefault (text "")
+        MenuChoice (p :: _) curr mbn ->
+            [ mkPage "prev" model.previous p
+            , mkPage "curr" model.current curr
+            , mbn |> Maybe.map (mkPage "next" model.next) |> Maybe.withDefault (text "")
+            ]
 
-                next =
-                    mbn |> Maybe.map (mkPage model.next) |> Maybe.withDefault (text "")
-            in
-                [ prev
-                , mkPage model.current curr
-                , next
-                ]
+        MenuChoice [] curr mbn ->
+            [ mkPage "curr" model.current curr
+            , mbn |> Maybe.map (mkPage "next" model.next) |> Maybe.withDefault (text "")
+            ]
 
 
-mkPage st idx =
-    div (class "page" :: Animation.render st)
+mkPage tag_ st idx =
+    div (class ("page " ++ tag_) :: Animation.render st)
         [ if idx == 0 then
             text ""
           else
