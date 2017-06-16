@@ -10,14 +10,13 @@ import Animation.Spring.Presets exposing (..)
 
 
 type
-    MenuChoice
+    MenuChoices a
     -- List Int in reverse order
-    = MenuChoice (List Int) Int (Maybe Int)
+    = MenuChoices (List a) a (Maybe a)
 
 
 type alias Model =
-    { path : List String
-    , pages : MenuChoice
+    { pages : MenuChoices String
     , previous : Animation.Messenger.State Msg
     , current : Animation.Messenger.State Msg
     , next : Animation.Messenger.State Msg
@@ -26,8 +25,7 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { path = []
-      , pages = MenuChoice [] 0 Nothing
+    ( { pages = MenuChoices [] "root" Nothing
       , previous =
             mkLeft -100.0
       , current =
@@ -57,18 +55,11 @@ mkLeft x =
 
 
 type MenuItem
-    = Node String (List MenuItem)
-    | Leaf String
+    = Node String Menu
 
 
 type alias Menu =
     List MenuItem
-
-
-menu =
-    [ Node "l1" [ Leaf "l1 l1" ]
-    , Leaf "l2"
-    ]
 
 
 
@@ -77,7 +68,7 @@ menu =
 
 type Msg
     = MoveUp
-    | MoveDown
+    | MoveDown String
     | SwitchUp
     | SwitchDown
     | Animate Animation.Msg
@@ -96,7 +87,7 @@ update message model =
             in
                 ( { model | previous = previous, current = current }, Cmd.none )
 
-        MoveDown ->
+        MoveDown chosen ->
             let
                 current =
                     animateCurrent -100.0 model.current
@@ -106,8 +97,8 @@ update message model =
 
                 pages =
                     case model.pages of
-                        MenuChoice ps curr _ ->
-                            MenuChoice ps curr (Just <| curr + 1)
+                        MenuChoices ps curr _ ->
+                            MenuChoices ps curr (Just chosen)
             in
                 ( { model | pages = pages, current = current, next = next }, Cmd.none )
 
@@ -116,8 +107,8 @@ update message model =
             let
                 pages =
                     case model.pages of
-                        MenuChoice ps curr (Just nxt) ->
-                            MenuChoice (curr :: ps) nxt Nothing
+                        MenuChoices ps curr (Just nxt) ->
+                            MenuChoices (curr :: ps) nxt Nothing
 
                         _ ->
                             model.pages
@@ -129,8 +120,8 @@ update message model =
             let
                 pages =
                     case model.pages of
-                        MenuChoice (p :: ps) _ _ ->
-                            MenuChoice ps p Nothing
+                        MenuChoices (p :: ps) _ _ ->
+                            MenuChoices ps p Nothing
 
                         _ ->
                             Debug.log "Unexpected error MoveUp" model.pages
@@ -177,7 +168,7 @@ myEasing =
 
 getCurrent mc =
     case mc of
-        MenuChoice _ curr _ ->
+        MenuChoices _ curr _ ->
             curr
 
 
@@ -189,74 +180,154 @@ view : Model -> Html Msg
 view model =
     div [ class "container" ]
         [ h1 [] [ text "menu" ]
-        , div [ class "menu-container" ]
-            (viewPages model)
-
-        -- [ div (class "filler" :: Animation.render model.previous) [ text "previous" ]
-        -- , ul (Animation.render model.current) <| viewLayer menu
-        -- , div (class "filler" :: Animation.render model.next)
-        --     [ span [ onClick MoveRight ] [ text "-->" ] ]
-        -- ]
-        ]
-
-
-viewPages model =
-    case model.pages of
-        MenuChoice (p :: _) curr mbn ->
-            [ mkPage "prev" model.previous p
-            , mkPage "curr" model.current curr
-            , mbn |> Maybe.map (mkPage "next" model.next) |> Maybe.withDefault (text "")
-            ]
-
-        MenuChoice [] curr mbn ->
-            [ mkPage "curr" model.current curr
-            , mbn |> Maybe.map (mkPage "next" model.next) |> Maybe.withDefault (text "")
-            ]
-
-
-mkPage tag_ st idx =
-    div (class ("page " ++ tag_) :: Animation.render st)
-        [ if idx == 0 then
-            text ""
-          else
-            button [ onClick MoveUp ] [ text "Up" ]
-        , text <| toString idx
-        , button [ onClick MoveDown ] [ text "Deeper" ]
+        , div [ class "menu-container" ] (viewPages model)
         ]
 
 
 
--- viewLayer : List MenuItem -> List (Html Msg)
--- viewLayer lst =
---     lst
---         |> L.map viewMenuItem
+-- Simple, with integers
+-- viewPages model =
+--     case model.pages of
+--         MenuChoices (p :: _) curr mbn ->
+--             [ mkPage "prev" model.previous p
+--             , mkPage "curr" model.current curr
+--             , mbn |> Maybe.map (mkPage "next" model.next) |> Maybe.withDefault (text "")
+--             ]
+--
+--         MenuChoices [] curr mbn ->
+--             [ mkPage "curr" model.current curr
+--             , mbn |> Maybe.map (mkPage "next" model.next) |> Maybe.withDefault (text "")
+--             ]
 --
 --
--- viewMenuItem item =
---     case item of
---         Node name _ ->
---             viewNode name
---
---         Leaf name ->
---             li [] [ text name ]
---
---
--- viewNode name =
---     li [ class "flex-h spread", onClick MoveLeft ]
---         [ text name
---         , matIcon "keyboard_arrow_right"
+-- mkPage tag_ st idx =
+--     div (class ("page " ++ tag_) :: Animation.render st)
+--         [ if idx == 0 then
+--             text ""
+--           else
+--             button [ onClick MoveUp ] [ text "Up" ]
+--         , text <| toString idx
+--         , button [ onClick MoveDown ] [ text "Deeper" ]
 --         ]
 --
 
 
-getName : MenuItem -> String
-getName item =
-    case item of
-        Node name _ ->
-            name
+viewPages : Model -> List (Html Msg)
+viewPages model =
+    case model.pages of
+        MenuChoices (p :: _) curr mbn ->
+            [ text "tbc" ]
 
-        Leaf name ->
-            name
+        -- [ mkPage "prev" model.previous p
+        -- , mkPage "curr" model.current curr
+        -- , mbn |> Maybe.map (mkPage "next" model.next) |> Maybe.withDefault (text "")
+        -- ]
+        MenuChoices [] curr mbn ->
+            [ mkCurrentPage model.current model.pages
+
+            -- , mbn |> Maybe.map (mkPage "next" model.next) |> Maybe.withDefault (text "")
+            ]
+
+
+
+-- mkCurrentPage : MenuChoices -> Html MoveUp
+
+
+mkCurrentPage st (MenuChoices ps curr _) =
+    case getMenuAtPath (L.reverse <| curr :: ps) of
+        Err err ->
+            text err
+
+        Ok lst ->
+            div (class ("page current") :: Animation.render st) <|
+                (if ps == [] then
+                    text ""
+                 else
+                    button [ onClick MoveUp ] [ text "Up" ]
+                )
+                    :: L.map (\(Node item _) -> li [ onClick (MoveDown item) ] [ text item ]) lst
+
+
+categories =
+    [ Node "Food" [], Node "Hotels" [], Node "Bars" [] ]
+
+
+menu : MenuItem
+menu =
+    Node "root"
+        [ Node "Belgium"
+            [ Node "Brussels" categories
+            , Node "Gent" categories
+            , Node "Antwerp" categories
+            , Node "Liege" categories
+            ]
+        , Node "France"
+            [ Node "Paris" categories
+            , Node "Marseille" categories
+            , Node "Bordeaux" categories
+            , Node "Lille" categories
+            ]
+        , Node "UK"
+            [ Node "Lodon" categories
+            , Node "Manchester" categories
+            , Node "Glasgow" categories
+            , Node "Bristol" categories
+            ]
+        ]
+
+
+getMenuAtPath path =
+    getMenuItemAtPath path menu |> Result.map getMenu
+
+
+getName : MenuItem -> String
+getName (Node name _) =
+    name
+
+
+getMenu : MenuItem -> Menu
+getMenu (Node _ menu) =
+    menu
+
+
+type alias Path =
+    List String
+
+
+getMenuItemAtPath : Path -> MenuItem -> Result String MenuItem
+getMenuItemAtPath pss m =
+    case ( pss, m ) of
+        ( [ "root" ], _ ) ->
+            Ok m
+
+        ( [], _ ) ->
+            Ok m
+
+        ( p :: ps, Node _ lst ) ->
+            let
+                go : MenuItem -> Result String MenuItem -> Result String MenuItem
+                go (Node m lst) acc =
+                    case acc of
+                        -- if we've already found it then skip through remainder
+                        Ok _ ->
+                            acc
+
+                        Err _ ->
+                            if m == p then
+                                Ok (Node m lst)
+                            else
+                                acc
+            in
+                case L.foldl go (Err <| "Could not find " ++ p) lst of
+                    Err err ->
+                        Err err
+
+                    Ok nextLevel ->
+                        getMenuItemAtPath ps nextLevel
+
+
+
+--
 
 
 matIcon : String -> Html msg
@@ -271,19 +342,3 @@ matIcon2 msg name =
         , onClick msg
         ]
         [ text name ]
-
-
-
--- current =
---     Animation.interrupt
---         [ Animation.toWith myEasing
---             [ Animation.translate (percent -100.0) (percent 0.0) ]
---         ]
---         model.current
---
--- next =
---     Animation.interrupt
---         [ Animation.toWith myEasing
---             [ Animation.translate (percent 0.0) (percent 0.0) ]
---         ]
---         model.next
