@@ -2,12 +2,13 @@ module Main exposing (main)
 
 import Html
 import App exposing (..)
-import Animation
+import MobileMenu as MM exposing (MenuItem(..))
 
 
+main : Program Never Model Msg
 main =
     Html.program
-        { init = init
+        { init = ( init, Cmd.none )
         , update = update
         , view = view
         , subscriptions = subscriptions
@@ -16,4 +17,4 @@ main =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Animation.subscription Animate [ model.previous, model.current, model.next ]
+    Sub.map MenuMsg (MM.subscriptions model.mm)

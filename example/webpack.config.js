@@ -95,7 +95,7 @@ if (TARGET_ENV === 'development') {
                             // add Elm's debug overlay to output
                             options: {
                                 debug: true,
-                                warn: true
+                                warn : true
                             }
                         }
                     ]

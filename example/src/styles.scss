@@ -7,20 +7,29 @@ body {
 
 .menu-container {
     background-color: #eee;
-    padding: 2px;
+    padding: 10px;
     overflow: hidden;
     position: relative;
     height: 300px;
     > * {
         position: absolute;
-        top: 0;
+        top: 5px;
         height: 100%;
         width: 100%;
         display: inline-block;
     }
+    ul {
+        list-style: none;
+        padding-left: 0;
+        li {
+            background-color: #e56;
+            border-bottom: 1px solid #ccc;
+            padding: 3px 15px;
+        }
+    }
     .page {
-        display: flex;
-        flex-direction: column;
+        // display: flex;
+        // flex-direction: column;
         font-size: 20px;
         justify-content: center;
         align-items: center;
