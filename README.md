@@ -4,7 +4,7 @@ An Elm library for nested menus for mobile-first websites.
 
 ## Demo
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/PiS04oDH-G4" frameborder="0" allowfullscreen></iframe>
+<img src"./demo.gif">
 
 ## Installation
 
@@ -16,7 +16,7 @@ An Elm library for nested menus for mobile-first websites.
 import SlidingMenu
 
 type alias Model =
-    { mm : SlidingMenu.Model
+    { menu : SlidingMenu.Model
     , userMessage : List String
     }
 
@@ -39,11 +39,11 @@ update message model =
         MenuMsg msg ->
             let
                 ( mm, cmd, maybeList ) =
-                    SlidingMenu.update myUpdateConfig msg model.mm
+                    SlidingMenu.update myUpdateConfig msg model.menu
 
                 newModel =
                     { model
-                        | mm = mm
+                        | menu = mm
                         , userMessage =
                             maybeList |> Maybe.withDefault model.userMessage
                     }
@@ -61,7 +61,7 @@ myViewConfig =
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
-        [ SlidingMenu.view myViewConfig model.mm |> Html.map MenuMsg
+        [ SlidingMenu.view myViewConfig model.menu |> Html.map MenuMsg
         , div [] [ text <| toString model.userMessage ]
         ]
 

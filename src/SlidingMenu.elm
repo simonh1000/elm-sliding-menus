@@ -89,8 +89,8 @@ leaf s =
 {-| This subscription must be added in your `main` function.
 
     subscriptions : Model -> Sub Msg
-    subscriptions { slidingMenuModel } =
-        Sub.map MenuMsg (SlidingMenu.subscriptions slidingMenuModel)
+    subscriptions { menu } =
+        Sub.map MenuMsg (SlidingMenu.subscriptions menu)
 
 -}
 subscriptions : Model -> Sub Msg
@@ -150,7 +150,7 @@ type alias UpdateConfig =
             MenuMsg msg ->
                 let
                     ( menu, cmd, maybePath ) =
-                        menu.update myUpdateConfig msg model.menu
+                        SlidingMenu.update myUpdateConfig msg model.menu
 
                     newModel =
                         { model
@@ -266,8 +266,8 @@ animationWithDefault { easing } =
 -- VIEW
 
 
-{-| Data required for the view function. Menu is the data for the different layers of the menu. Back is
-the string that will be used alongside a "<" to make the back item.
+{-| Data required for the view function. Menu is the data for the different layers of the menu; see below for how to make `MenuItem`s.
+Back is the string that will be used alongside a "<" to make the back item.
 -}
 type alias ViewConfig =
     { menu : List MenuItem
@@ -282,8 +282,8 @@ type alias ViewConfig =
         ul.sliding-menu-page.current
         ul.sliding-menu-page.next
 
-Note that `.sliding-menu-page` is `display : relative`, and `.sliding-menu-page` is `display : absolute`.
-You will need to add an appropriate `height` to `.sliding-menu-page`
+Note that `.sliding-menu-page` is `display : relative`, and `.sliding-menu-page` is `display : absolute`,
+and the library animates the `left` style. You will need to add an appropriate `height` to `.sliding-menu-page`
 
 -}
 view : ViewConfig -> Model -> Html Msg
