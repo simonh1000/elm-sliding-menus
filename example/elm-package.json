@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "elm-hot-loader-starter",
-    "repository": "https://github.com/simonh1000/elm-hot-loading-starter.git",
+    "summary": "Example",
+    "repository": "https://github.com/simonh1000/elm-sliding-menus.git",
     "license": "ISC",
     "source-directories": [
         "src",

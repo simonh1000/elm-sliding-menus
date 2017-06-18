@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
-    "summary": "Animated menus for mobile devices",
-    "repository": "https://github.com/user/project.git",
+    "summary": "Animated menus for mobile-first webapps",
+    "repository": "https://github.com/simonh1000/elm-sliding-menus.git",
     "license": "BSD3",
     "source-directories": [
         "src"
