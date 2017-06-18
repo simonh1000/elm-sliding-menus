@@ -13,22 +13,22 @@ module SlidingMenu
         , node
         )
 
-{-| ....
+{-| An Elm library to create animated, nested menus for mobile-first websites.
 
 
-# Data Structures
+# View
 
-@docs Model, UpdateConfig, ViewConfig, MenuItem, Msg
-
-
-# Standard functions
-
-@docs init, update, view, subscriptions
+@docs view, ViewConfig
 
 
-# Helpers
+## Update
 
-@docs leaf, node
+@docs update, UpdateConfig, subscriptions, Msg
+
+
+# Setting up
+
+@docs Model, init, MenuItem, leaf, node
 
 -}
 
@@ -42,7 +42,13 @@ import Animation.Spring.Presets exposing (zippy)
 import Icons exposing (..)
 
 
-{-| Opaque type
+{-| Opaque type that you will need to add to your model.
+
+    type alias Model =
+        { menu : SlidingMenu.Model
+        , ...
+        }
+
 -}
 type Model
     = Model
@@ -53,40 +59,34 @@ type Model
         }
 
 
-{-| Data required for the update function. At present, menu is not used but is required here to prevent
-a breaking change down the line. In the absence of an easing function, the default 'zippy' spring from
-elm-animations is used.
+{-| Private type:
+MenuChoices (previous choices in leaf --> root) current (maybe bext one)
 -}
-type alias UpdateConfig =
-    { menu : MenuItem
-    , easing : Maybe Animation.Interpolation
-    }
+type MenuChoices
+    = MenuChoices (List String) String (Maybe String)
 
 
-{-| Data required for the view function. Menu is the data for the different layers of the menu. Back is
-the string that will be used alongside a "<" to make the back item.
+{-| Opaque type that models a heirarchical menu.
 -}
-type alias ViewConfig =
-    { menu : MenuItem
-    , back : String
-    }
+type MenuItem
+    = Node String (List MenuItem)
 
 
-{-| Helper function build an interim menu item
+{-| Helper function build parent MenuItem
 -}
 node : String -> List MenuItem -> MenuItem
 node =
     Node
 
 
-{-| Helper function build a leaf menu item
+{-| Helper function build a leaf MenuItem
 -}
 leaf : String -> MenuItem
 leaf s =
     Node s []
 
 
-{-| This subscription must be added in your main function.
+{-| This subscription must be added in your `main` function.
 
     subscriptions : Model -> Sub Msg
     subscriptions { slidingMenuModel } =
@@ -133,22 +133,34 @@ type Msg
     | Animate Animation.Msg
 
 
-{-| update returns a 3-tuple of the model, a command and - following a user click - the menu path chosen by the user.
+{-| Data required for the update function. At present, menu is not used but is required here to prevent
+a breaking change down the line. The `easing` function can be any elm-animation [Interpolation](http://package.elm-lang.org/packages/mdgriffith/elm-style-animation/3.5.5/Animation#Interpolation) with the default
+set to ['zippy' spring](http://package.elm-lang.org/packages/mdgriffith/elm-style-animation/3.5.5/Animation-Spring-Presets).
+-}
+type alias UpdateConfig =
+    { menu : List MenuItem
+    , easing : Maybe Animation.Interpolation
+    }
 
-It may be that you only want the leaf value, which is readily available from the path.
 
-    update : Msg -> Model -> ( Model, Cmd Msg )
+{-| update returns a 3-tuple of the model, a `Cmd SlidingMenu.Msg`, and - following a user click - the menu path chosen by the user.
+
     update message model =
         case message of
             MenuMsg msg ->
                 let
-                    ( mm, c1, maybeList ) =
-                        MM.update myUpdateConfig msg model.mm
+                    ( menu, cmd, maybePath ) =
+                        menu.update myUpdateConfig msg model.menu
 
                     newModel =
-                        { model | mm = mm, userMessage = maybeList |> Maybe.withDefault model.userMessage }
+                        { model
+                            | menu = menu
+                            , chosenPath =
+                                maybePath
+                                    |> Maybe.withDefault model.chosenPath
+                        }
                 in
-                    ( newModel, Cmd.map MenuMsg c1 )
+                    ( newModel, Cmd.map MenuMsg cmd )
 
 -}
 update : UpdateConfig -> Msg -> Model -> ( Model, Cmd Msg, Maybe (List String) )
@@ -163,18 +175,18 @@ update config message ((Model m) as model) =
             in
                 ( model, Cmd.none, Just (toList pages) )
 
-        Animate animMsg ->
+        Animate animenusg ->
             let
                 ( next, cmdNext ) =
-                    Animation.Messenger.update animMsg m.next
+                    Animation.Messenger.update animenusg m.next
 
                 ( previous, cmdPrev ) =
-                    Animation.Messenger.update animMsg m.previous
+                    Animation.Messenger.update animenusg m.previous
             in
                 ( Model
                     { m
                         | previous = previous
-                        , current = Animation.update animMsg m.current
+                        , current = Animation.update animenusg m.current
                         , next = next
                     }
                 , Cmd.batch [ cmdNext, cmdPrev ]
@@ -254,13 +266,24 @@ animationWithDefault { easing } =
 -- VIEW
 
 
-{-| Classes
+{-| Data required for the view function. Menu is the data for the different layers of the menu. Back is
+the string that will be used alongside a "<" to make the back item.
+-}
+type alias ViewConfig =
+    { menu : List MenuItem
+    , back : String
+    }
 
-    sliding-menu-container
-    sliding-menu-page
-        current
-        previous
-        next
+
+{-| Renders the menu. The CSS heirarchy is:
+
+    .sliding-menu-container
+        ul.sliding-menu-page.previous
+        ul.sliding-menu-page.current
+        ul.sliding-menu-page.next
+
+Note that `.sliding-menu-page` is `display : relative`, and `.sliding-menu-page` is `display : absolute`.
+You will need to add an appropriate `height` to `.sliding-menu-page`
 
 -}
 view : ViewConfig -> Model -> Html Msg
@@ -286,7 +309,7 @@ view config ((Model m) as model) =
 
 viewPage : ViewConfig -> String -> Animation.Messenger.State Msg -> MenuChoices -> Html Msg
 viewPage config lab st (MenuChoices ps curr _) =
-    case getMenuAtPath (L.reverse <| curr :: ps) [ config.menu ] of
+    case getMenuAtPath (L.reverse <| curr :: ps) [ node "root" config.menu ] of
         Err err ->
             text err
 
@@ -356,13 +379,7 @@ liStyles =
 
 
 
--- Menu Choices
-
-
-{-| List of previous menu choices in reverse order
--}
-type MenuChoices
-    = MenuChoices (List String) String (Maybe String)
+-- Menu Choices (private)
 
 
 toList : MenuChoices -> List String
@@ -377,10 +394,6 @@ toList (MenuChoices ps curr nxt) =
 
 
 -- MenuItem (private)
-
-
-type MenuItem
-    = Node String (List MenuItem)
 
 
 getMenuAtPath : List String -> List MenuItem -> Result String (List MenuItem)

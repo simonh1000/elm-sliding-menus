@@ -13,12 +13,13 @@ body {
     li {
         font-weight: bold;
         font-size: 20px;
-        background-color: #e76;
         border-bottom: 1px solid #888;
-        &:hover {
+        
+        transition: background-color 0.3s ease-in-out;
+        background-color: #e76;
+        &:active {
             background-color: lighten(#e56, 15%);
         }
-        transition: background-color 0.3s ease-in-out;
     }
 }
 

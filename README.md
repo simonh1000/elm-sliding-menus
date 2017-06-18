@@ -1,6 +1,10 @@
-# Elm Sliding Menus
+# Elm Sliding Menu
+
+An Elm library for nested menus for mobile-first websites.
 
 ## Demo
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/PiS04oDH-G4" frameborder="0" allowfullscreen></iframe>
 
 ## Installation
 
@@ -8,26 +12,24 @@
 
 ## Setup
 
-
+```elm
 import SlidingMenu
-
 
 type alias Model =
     { mm : SlidingMenu.Model
     , userMessage : List String
     }
 
+-- UPDATE
 
--- provide a message in your app to relay SlidingMenu messages
 type Msg
-    = MenuMsg SlidingMenu.Msg
-
+    = MenuMsg SlidingMenu.Msg -- a message to relay SlidingMenu messages
 
 
 myUpdateConfig : SlidingMenu.UpdateConfig
 myUpdateConfig =
     { menu = menu
-    , easing = Nothing -- use the default easing
+    , easing = Nothing -- using default easing
     }
 
 -- Handle the 3-tuple return value from SlidingMenu.update
@@ -47,3 +49,31 @@ update message model =
                     }
             in
                 ( newModel, Cmd.map MenuMsg cmd )
+
+-- VIEW
+
+myViewConfig : SlidingMenu.ViewConfig
+myViewConfig =
+    { menu = menu
+    , back = "Back"
+    }
+
+view : Model -> Html Msg
+view model =
+    div [ class "container" ]
+        [ SlidingMenu.view myViewConfig model.mm |> Html.map MenuMsg
+        , div [] [ text <| toString model.userMessage ]
+        ]
+
+-- Some data to use
+
+menu : List SlidingMenu.MenuItem
+menu =
+    let categories =
+        [ SlidingMenu.leaf "Food", SlidingMenu.leaf "Hotels", SlidingMenu.leaf "Bars" ]
+    in
+    [ SlidingMenu.node "Belgium" categories
+    , SlidingMenu.node "France" categories
+    , SlidingMenu.node "UK" categories
+    ]
+```

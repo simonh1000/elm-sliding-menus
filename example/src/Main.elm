@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Html
 import App exposing (..)
-import SlidingMenu as MM
+import SlidingMenu
 
 
 main : Program Never Model Msg
@@ -17,4 +17,4 @@ main =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map MenuMsg (MM.subscriptions model.mm)
+    Sub.map MenuMsg (SlidingMenu.subscriptions model.menu)
