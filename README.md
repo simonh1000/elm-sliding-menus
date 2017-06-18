@@ -1,14 +1,49 @@
-# Elm 0.18 with Webpack 2, Hot Loading, & Bootstrap 4
+# Elm Sliding Menus
 
-A simple Elm dev environment with hot-loading (i.e. state is retained as you edit your code, uses https://github.com/fluxxu/elm-hot-loader).
+## Demo
 
 ## Installation
 
-```sh
-$ npm install
-$ npm run dev
-```
+    elm-package install simonh1000/elm-sliding-menus
 
-Open http://localhost:3000 and start modifying the code in /src.
+## Setup
 
-See also my [Gulp-based dev environment](https://github.com/simonh1000/elm-fullstack-starter).
+
+import SlidingMenu
+
+
+type alias Model =
+    { mm : SlidingMenu.Model
+    , userMessage : List String
+    }
+
+
+-- provide a message in your app to relay SlidingMenu messages
+type Msg
+    = MenuMsg SlidingMenu.Msg
+
+
+
+myUpdateConfig : SlidingMenu.UpdateConfig
+myUpdateConfig =
+    { menu = menu
+    , easing = Nothing -- use the default easing
+    }
+
+-- Handle the 3-tuple return value from SlidingMenu.update
+update : Msg -> Model -> ( Model, Cmd Msg )
+update message model =
+    case message of
+        MenuMsg msg ->
+            let
+                ( mm, cmd, maybeList ) =
+                    SlidingMenu.update myUpdateConfig msg model.mm
+
+                newModel =
+                    { model
+                        | mm = mm
+                        , userMessage =
+                            maybeList |> Maybe.withDefault model.userMessage
+                    }
+            in
+                ( newModel, Cmd.map MenuMsg cmd )

@@ -2,27 +2,35 @@ module App exposing (..)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Animation exposing (..)
-import Animation.Spring.Presets exposing (..)
-import MobileMenu as MM exposing (MenuItem, leaf)
+import SlidingMenu
 
 
 type alias Model =
-    { mm : MM.Model
+    { mm : SlidingMenu.Model
     , userMessage : List String
     }
 
 
 init : Model
 init =
-    { mm = MM.init
+    { mm = SlidingMenu.init
     , userMessage = []
     }
 
 
+
+--
+
+
 type Msg
-    = MenuMsg MM.Msg
-    | OnLeafClick (List String)
+    = MenuMsg SlidingMenu.Msg
+
+
+myUpdateConfig : SlidingMenu.UpdateConfig
+myUpdateConfig =
+    { menu = menu
+    , easing = Nothing
+    }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -30,30 +38,31 @@ update message model =
     case message of
         MenuMsg msg ->
             let
-                ( mm, c1, maybeMsg ) =
-                    MM.update myUpdateConfig msg model.mm
+                ( mm, c1, maybeList ) =
+                    SlidingMenu.update myUpdateConfig msg model.mm
 
-                ( newModel, c2 ) =
-                    case maybeMsg of
-                        Just msg_ ->
-                            update msg_ { model | mm = mm }
-
-                        Nothing ->
-                            ( { model | mm = mm }, Cmd.none )
+                newModel =
+                    { model | mm = mm, userMessage = maybeList |> Maybe.withDefault model.userMessage }
             in
-                ( newModel
-                , Cmd.batch [ Cmd.map MenuMsg c1, c2 ]
-                )
+                ( newModel, Cmd.map MenuMsg c1 )
 
-        OnLeafClick str ->
-            ( { model | userMessage = str }, Cmd.none )
+
+
+--
+
+
+myViewConfig : SlidingMenu.ViewConfig
+myViewConfig =
+    { menu = menu
+    , back = "Back"
+    }
 
 
 view : Model -> Html Msg
 view model =
     div [ class "container" ]
         [ h1 [] [ text "menu" ]
-        , MM.view myViewConfig model.mm |> Html.map MenuMsg
+        , SlidingMenu.view myViewConfig model.mm |> Html.map MenuMsg
         , div [] [ text <| toString model.userMessage ]
         ]
 
@@ -62,54 +71,30 @@ view model =
 --
 
 
-myViewConfig : MM.ViewConfig
-myViewConfig =
-    { menu = menu
-    }
-
-
-myUpdateConfig : MM.UpdateConfig Msg
-myUpdateConfig =
-    { menu = menu
-    , easing = mySpring
-    , onLeafClick = OnLeafClick
-    }
-
-
-mySpring : Animation.Interpolation
-mySpring =
-    Animation.spring zippy
-
-
-myEasing : Animation.Interpolation
-myEasing =
-    easing { duration = 1000, ease = identity }
-
-
-categories : List MenuItem
-categories =
-    [ leaf "Food", leaf "Hotels", leaf "Bars" ]
-
-
-menu : MM.MenuItem
+menu : SlidingMenu.MenuItem
 menu =
-    MM.node "root"
-        [ MM.node "Belgium"
-            [ MM.node "Brussels" categories
-            , MM.node "Gent" categories
-            , MM.node "Antwerp" categories
-            , MM.node "Liege" categories
+    SlidingMenu.node "root"
+        [ SlidingMenu.node "Belgium"
+            [ SlidingMenu.node "Brussels" categories
+            , SlidingMenu.node "Gent" categories
+            , SlidingMenu.node "Antwerp" categories
+            , SlidingMenu.node "Liege" categories
             ]
-        , MM.node "France"
-            [ MM.node "Paris" categories
-            , MM.node "Marseille" categories
-            , MM.node "Bordeaux" categories
-            , MM.node "Lille" categories
+        , SlidingMenu.node "France"
+            [ SlidingMenu.node "Paris" categories
+            , SlidingMenu.node "Marseille" categories
+            , SlidingMenu.node "Bordeaux" categories
+            , SlidingMenu.node "Lille" categories
             ]
-        , MM.node "UK"
-            [ MM.node "Lodon" categories
-            , MM.node "Manchester" categories
-            , MM.node "Glasgow" categories
-            , MM.node "Bristol" categories
+        , SlidingMenu.node "UK"
+            [ SlidingMenu.node "London" categories
+            , SlidingMenu.node "Manchester" categories
+            , SlidingMenu.node "Glasgow" categories
+            , SlidingMenu.node "Bristol" categories
             ]
         ]
+
+
+categories : List SlidingMenu.MenuItem
+categories =
+    [ SlidingMenu.leaf "Food", SlidingMenu.leaf "Hotels", SlidingMenu.leaf "Bars" ]

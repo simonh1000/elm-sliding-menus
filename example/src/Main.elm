@@ -2,7 +2,7 @@ module Main exposing (main)
 
 import Html
 import App exposing (..)
-import MobileMenu as MM exposing (MenuItem(..))
+import SlidingMenu as MM
 
 
 main : Program Never Model Msg
