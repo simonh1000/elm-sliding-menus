@@ -4,7 +4,7 @@ An Elm library for nested menus for mobile-first websites.
 
 ## Demo
 
-<img src"./demo.gif">
+<img src="./demo.gif">
 
 ## Installation
 
