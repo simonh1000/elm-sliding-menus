@@ -13,7 +13,7 @@ module SlidingMenu
         , node
         )
 
-{-| An Elm library to create animated, nested menus for mobile-first websites.
+{-| An Elm library to create animated, nested menus (e.g. for mobile-first websites).
 
 
 # View
@@ -60,7 +60,7 @@ type Model
 
 
 {-| Private type:
-MenuChoices (previous choices in leaf --> root) current (maybe bext one)
+MenuChoices (previous choices in leaf --> root) current (maybe next one)
 -}
 type MenuChoices
     = MenuChoices (List String) String (Maybe String)
@@ -175,18 +175,18 @@ update config message ((Model m) as model) =
             in
                 ( model, Cmd.none, Just (toList pages) )
 
-        Animate animenusg ->
+        Animate msg ->
             let
                 ( next, cmdNext ) =
-                    Animation.Messenger.update animenusg m.next
+                    Animation.Messenger.update msg m.next
 
                 ( previous, cmdPrev ) =
-                    Animation.Messenger.update animenusg m.previous
+                    Animation.Messenger.update msg m.previous
             in
                 ( Model
                     { m
                         | previous = previous
-                        , current = Animation.update animenusg m.current
+                        , current = Animation.update msg m.current
                         , next = next
                     }
                 , Cmd.batch [ cmdNext, cmdPrev ]
@@ -266,8 +266,8 @@ animationWithDefault { easing } =
 -- VIEW
 
 
-{-| Data required for the view function. Menu is the data for the different layers of the menu; see below for how to make `MenuItem`s.
-Back is the string that will be used alongside a "<" to make the back item.
+{-| Data required for the view function. `menu` is the data for the different layers of the menu; see below for how to make `MenuItem`s.
+`back` is the string that will be used alongside a "<" to make the back item.
 -}
 type alias ViewConfig =
     { menu : List MenuItem
