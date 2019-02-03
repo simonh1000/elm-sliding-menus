@@ -213,7 +213,8 @@ update_ config message model =
                             MenuChoices ps p Nothing
 
                         _ ->
-                            Debug.log "Unexpected error MoveUp" model.pages
+                            -- TODO see whether we make this state impossible
+                            model.pages
             in
             ( reset pages, Cmd.none, Just <| toList pages )
 
