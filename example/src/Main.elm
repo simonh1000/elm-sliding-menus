@@ -36,7 +36,7 @@ myUpdateConfig =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
-    case Debug.log "" message of
+    case message of
         MenuMsg msg ->
             let
                 ( menu, cmds, maybeList ) =

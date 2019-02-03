@@ -386,7 +386,6 @@ liStyles =
     , Attr.style "display" "flex"
     , Attr.style "align-items" "center"
     , Attr.style "justify-content" "space-between"
-    , Attr.style "width" "100%"
     , Attr.style "cursor" "default"
     ]
 
