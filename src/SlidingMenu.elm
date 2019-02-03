@@ -1,17 +1,8 @@
-module SlidingMenu
-    exposing
-        ( Model
-        , UpdateConfig
-        , ViewConfig
-        , MenuItem
-        , Msg
-        , init
-        , update
-        , view
-        , subscriptions
-        , leaf
-        , node
-        )
+module SlidingMenu exposing
+    ( view, ViewConfig
+    , update, UpdateConfig, subscriptions, Msg
+    , Model, init, MenuItem, leaf, node
+    )
 
 {-| An Elm library to create animated, nested menus for mobile-first websites.
 
@@ -32,14 +23,14 @@ module SlidingMenu
 
 -}
 
-import Html exposing (..)
-import Html.Attributes as Attr exposing (..)
-import Html.Events exposing (..)
-import List as L
 import Animation exposing (..)
 import Animation.Messenger
 import Animation.Spring.Presets exposing (zippy)
+import Html exposing (..)
+import Html.Attributes as Attr exposing (..)
+import Html.Events exposing (..)
 import Icons exposing (..)
+import List as L
 
 
 {-| Opaque type that you will need to add to your model.
@@ -110,12 +101,12 @@ reset pages =
         mkLeft x =
             Animation.style [ Animation.left (percent x) ]
     in
-        Model
-            { pages = pages
-            , previous = mkLeft -100.0
-            , current = mkLeft 0.0
-            , next = mkLeft 100.0
-            }
+    Model
+        { pages = pages
+        , previous = mkLeft -100.0
+        , current = mkLeft 0.0
+        , next = mkLeft 100.0
+        }
 
 
 
@@ -160,7 +151,7 @@ type alias UpdateConfig =
                                     |> Maybe.withDefault model.chosenPath
                         }
                 in
-                    ( newModel, Cmd.map MenuMsg cmd )
+                ( newModel, Cmd.map MenuMsg cmd )
 
 -}
 update : UpdateConfig -> Msg -> Model -> ( Model, Cmd Msg, Maybe (List String) )
@@ -173,25 +164,25 @@ update config message ((Model m) as model) =
                         MenuChoices ps curr _ ->
                             MenuChoices ps curr (Just s)
             in
-                ( model, Cmd.none, Just (toList pages) )
+            ( model, Cmd.none, Just (toList pages) )
 
-        Animate animenusg ->
+        Animate msg ->
             let
                 ( next, cmdNext ) =
-                    Animation.Messenger.update animenusg m.next
+                    Animation.Messenger.update msg m.next
 
                 ( previous, cmdPrev ) =
-                    Animation.Messenger.update animenusg m.previous
+                    Animation.Messenger.update msg m.previous
             in
-                ( Model
-                    { m
-                        | previous = previous
-                        , current = Animation.update animenusg m.current
-                        , next = next
-                    }
-                , Cmd.batch [ cmdNext, cmdPrev ]
-                , Nothing
-                )
+            ( Model
+                { m
+                    | previous = previous
+                    , current = Animation.update msg m.current
+                    , next = next
+                }
+            , Cmd.batch [ cmdNext, cmdPrev ]
+            , Nothing
+            )
 
         MoveUp ->
             let
@@ -201,7 +192,7 @@ update config message ((Model m) as model) =
                 current =
                     animateCurrent config 100.0 m.current
             in
-                ( Model { m | previous = previous, current = current }, Cmd.none, Nothing )
+            ( Model { m | previous = previous, current = current }, Cmd.none, Nothing )
 
         MoveDown chosen ->
             let
@@ -216,7 +207,7 @@ update config message ((Model m) as model) =
                         MenuChoices ps curr _ ->
                             MenuChoices ps curr (Just chosen)
             in
-                ( Model { m | pages = pages, current = current, next = next }, Cmd.none, Nothing )
+            ( Model { m | pages = pages, current = current, next = next }, Cmd.none, Nothing )
 
         OnDownComplete ->
             let
@@ -228,7 +219,7 @@ update config message ((Model m) as model) =
                         _ ->
                             m.pages
             in
-                ( reset pages, Cmd.none, Just <| toList pages )
+            ( reset pages, Cmd.none, Just <| toList pages )
 
         OnUpComplete ->
             let
@@ -240,7 +231,7 @@ update config message ((Model m) as model) =
                         _ ->
                             Debug.log "Unexpected error MoveUp" m.pages
             in
-                ( reset pages, Cmd.none, Just <| toList pages )
+            ( reset pages, Cmd.none, Just <| toList pages )
 
 
 animateCurrent : UpdateConfig -> Float -> Animation.Messenger.State Msg -> Animation.Messenger.State Msg
@@ -277,10 +268,18 @@ type alias ViewConfig =
 
 {-| Renders the menu. The CSS heirarchy is:
 
-    .sliding-menu-container
-        ul.sliding-menu-page.previous
-        ul.sliding-menu-page.current
-        ul.sliding-menu-page.next
+    .sliding
+        - menu
+        - container
+            ul.sliding
+        - menu
+        - page.previous
+            ul.sliding
+        - menu
+        - page.current
+            ul.sliding
+        - menu
+        - page.next
 
 Note that `.sliding-menu-page` is `display : relative`, and `.sliding-menu-page` is `display : absolute`,
 and the library animates the `left` style. You will need to add an appropriate `height` to `.sliding-menu-page`
@@ -288,12 +287,12 @@ and the library animates the `left` style. You will need to add an appropriate `
 -}
 view : ViewConfig -> Model -> Html Msg
 view config ((Model m) as model) =
-    div [ class "sliding-menu-container", containerStyles ] <|
+    div (class "sliding-menu-container" :: containerStyles) <|
         case m.pages of
             MenuChoices pps curr mbn ->
                 [ case pps of
                     p :: ps ->
-                        viewPage config "previous" m.previous (MenuChoices (ps) p (Just curr))
+                        viewPage config "previous" m.previous (MenuChoices ps p (Just curr))
 
                     [] ->
                         text ""
@@ -314,12 +313,13 @@ viewPage config lab st (MenuChoices ps curr _) =
             text err
 
         Ok lst ->
-            ul (ulStyles :: class ("sliding-menu-page " ++ lab) :: Animation.render st) <|
+            ul (class ("sliding-menu-page " ++ lab) :: Animation.render st ++ ulStyles) <|
                 (if ps == [] then
                     text ""
+
                  else
-                    li [ onClick MoveUp, liStyles ]
-                        [ span [ backStyles ]
+                    li (onClick MoveUp :: liStyles)
+                        [ span backStyles
                             [ arrow2, text config.back ]
                         ]
                 )
@@ -329,53 +329,51 @@ viewPage config lab st (MenuChoices ps curr _) =
 mkLi : MenuItem -> Html Msg
 mkLi (Node item lst) =
     if lst == [] then
-        li [ onClick (OnLeafClick item), liStyles ] [ text item ]
+        li (onClick (OnLeafClick item) :: liStyles)
+            [ text item ]
+
     else
-        li [ onClick (MoveDown item), liStyles ]
+        li (onClick (MoveDown item) :: liStyles)
             [ span [] [ text item ]
             , arrow
             ]
 
 
-backStyles : Attribute msg
+backStyles : List (Attribute msg)
 backStyles =
-    Attr.style
-        [ ( "display", "flex" )
-        , ( "align-items", "center" )
-        , ( "margin-left", "-7px" )
-        ]
+    [ Attr.style "display" "flex"
+    , Attr.style "align-items" "center"
+    , Attr.style "margin-left" "-7px"
+    ]
 
 
-containerStyles : Attribute msg
+containerStyles : List (Attribute msg)
 containerStyles =
-    Attr.style
-        [ ( "overflow", "hidden" )
-        , ( "position", "relative" )
-        ]
+    [ Attr.style "overflow" "hidden"
+    , Attr.style "position" "relative"
+    ]
 
 
-ulStyles : Attribute msg
+ulStyles : List (Attribute msg)
 ulStyles =
-    Attr.style
-        [ ( "position", "absolute" )
-        , ( "list-style", "none" )
-        , ( "margin", "0" )
-        , ( "padding", "0" )
-        , ( "left", "0" )
-        , ( "width", "100%" )
-        ]
+    [ Attr.style "position" "absolute"
+    , Attr.style "list-style" "none"
+    , Attr.style "margin" "0"
+    , Attr.style "padding" "0"
+    , Attr.style "left" "0"
+    , Attr.style "width" "100%"
+    ]
 
 
-liStyles : Attribute msg
+liStyles : List (Attribute msg)
 liStyles =
-    Attr.style
-        [ ( "padding", "3px 8px 3px 15px" )
-        , ( "display", "flex" )
-        , ( "align-items", "center" )
-        , ( "justify-content", "space-between" )
-        , ( "width", "100%" )
-        , ( "cursor", "default" )
-        ]
+    [ Attr.style "padding" "3px 8px 3px 15px"
+    , Attr.style "display" "flex"
+    , Attr.style "align-items" "center"
+    , Attr.style "justify-content" "space-between"
+    , Attr.style "width" "100%"
+    , Attr.style "cursor" "default"
+    ]
 
 
 
@@ -387,7 +385,7 @@ toList (MenuChoices ps curr nxt) =
     nxt
         |> Maybe.map List.singleton
         |> Maybe.withDefault []
-        |> flip (++) (curr :: ps)
+        |> (\a -> (++) a (curr :: ps))
         |> L.reverse
         |> L.drop 1
 
@@ -417,7 +415,8 @@ findByIndex tgt lst =
         go ((Node c cs) as p) acc =
             if c == tgt then
                 Ok p
+
             else
                 acc
     in
-        L.foldl go (Err <| "Could not find " ++ tgt) lst
+    L.foldl go (Err <| "Could not find " ++ tgt) lst

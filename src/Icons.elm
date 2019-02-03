@@ -1,4 +1,4 @@
-module Icons exposing (..)
+module Icons exposing (arrow, arrow2)
 
 import Svg exposing (..)
 import Svg.Attributes as A

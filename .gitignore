@@ -42,3 +42,4 @@ example/dist
 
 ignore
 dist
+example/package-lock.json

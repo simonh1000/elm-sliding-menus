@@ -1,0 +1,18 @@
+{
+    "type": "package",
+    "name": "simonh1000/elm-sliding-menus",
+    "summary": "Animated menus for mobile-first webapps",
+    "license": "BSD-3-Clause",
+    "version": "1.0.0",
+    "exposed-modules": [
+        "SlidingMenu"
+    ],
+    "elm-version": "0.19.0 <= v < 0.20.0",
+    "dependencies": {
+        "elm/core": "1.0.0 <= v < 2.0.0",
+        "elm/html": "1.0.0 <= v < 2.0.0",
+        "elm/svg": "1.0.1 <= v < 2.0.0",
+        "mdgriffith/elm-style-animation": "4.0.0 <= v < 5.0.0"
+    },
+    "test-dependencies": {}
+}

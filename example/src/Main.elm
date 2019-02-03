@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import SlidingMenu
@@ -44,7 +45,7 @@ update message model =
                 newModel =
                     { model | menu = menu, userMessage = maybeList |> Maybe.withDefault model.userMessage }
             in
-                ( newModel, Cmd.map MenuMsg c1 )
+            ( newModel, Cmd.map MenuMsg c1 )
 
 
 
@@ -63,7 +64,7 @@ view model =
     div [ class "container" ]
         [ h1 [] [ text "Travel guide" ]
         , SlidingMenu.view myViewConfig model.menu |> Html.map MenuMsg
-        , div [] [ text <| toString model.userMessage ]
+        , div [] [ text <| String.join ", " model.userMessage ]
         ]
 
 
@@ -100,15 +101,21 @@ categories =
 
 
 
---
+-- ---------------------------
+-- MAIN
+-- ---------------------------
 
 
-main : Program Never Model Msg
+main : Program Int Model Msg
 main =
-    Html.program
-        { init = ( init, Cmd.none )
+    Browser.document
+        { init = \_ -> ( init, Cmd.none )
         , update = update
-        , view = view
+        , view =
+            \m ->
+                { title = "Elm 0.19 starter"
+                , body = [ view m ]
+                }
         , subscriptions = subscriptions
         }
 

@@ -1,59 +1,64 @@
-const webpack = require('webpack');
-var merge = require('webpack-merge');
-var CopyWebpackPlugin = require('copy-webpack-plugin');
-var HTMLWebpackPlugin = require('html-webpack-plugin');
-var path = require('path');
+const path = require("path");
+const webpack = require("webpack");
+const merge = require("webpack-merge");
+const elmMinify = require("elm-minify");
 
-var TARGET_ENV = process.env.npm_lifecycle_event === 'build' ? 'production' : 'development';
-var filename = (TARGET_ENV == 'production') ? '[name]-[hash].js' : 'index.js';
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+const HTMLWebpackPlugin = require("html-webpack-plugin");
+const CleanWebpackPlugin = require("clean-webpack-plugin");
+
+// to extract the css as a separate file
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+
+console.log(process.env.npm_lifecycle_event);
+
+// process.env.npm_lifecycle_event =
+//    - prod
+//    - dev
+//    - nodebug
+var MODE =
+    process.env.npm_lifecycle_event === "prod" ? "production" : "development";
 
 var common = {
-    entry: './src/index.js',
+    mode: MODE,
+    entry: "./src/index.js",
     output: {
         path: path.join(__dirname, "dist"),
-        // add hash when building for production
-        filename: filename
+        publicPath: "/",
+        // FIXME webpack -p automatically adds hash when building for production
+        filename: MODE == "production" ? "[name]-[hash].js" : "index.js"
     },
     plugins: [
         new HTMLWebpackPlugin({
-            // using .ejs prevents other loaders causing errors
-            template: 'src/index.ejs',
+            // Use this template to get basic responsive meta tags
+            template: "src/index.html",
             // inject details of output file at end of body
-            inject: 'body'
+            inject: "body"
         })
     ],
     resolve: {
-        modules: [
-            path.join(__dirname, "src"),
-            "node_modules"
-        ],
-        extensions: ['.js', '.elm', '.scss']
+        modules: [path.join(__dirname, "src"), "node_modules"],
+        extensions: [".js", ".elm", ".scss", ".png"]
     },
     module: {
-        rules: [{
-                test: /\.html$/,
-                exclude: /node_modules/,
-                loader: 'file-loader?name=[name].[ext]'
-            },
+        rules: [
             {
                 test: /\.js$/,
                 exclude: /node_modules/,
                 use: {
-                    loader: 'babel-loader',
-                    options: {
-                        // env: automatically determines the Babel plugins you need based on your supported environments
-                        presets: ['env']
-                    }
+                    loader: "babel-loader"
                 }
-            }, {
+            },
+            {
                 test: /\.scss$/,
                 exclude: [/elm-stuff/, /node_modules/],
-                loaders: ["style-loader", "css-loader", "sass-loader"]
+                // see https://github.com/webpack-contrib/css-loader#url
+                loaders: ["style-loader", "css-loader?url=false", "sass-loader"]
             },
             {
                 test: /\.css$/,
                 exclude: [/elm-stuff/, /node_modules/],
-                loaders: ["style-loader", "css-loader"]
+                loaders: ["style-loader", "css-loader?url=false"]
             },
             {
                 test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
@@ -68,69 +73,114 @@ var common = {
                 test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
                 exclude: [/elm-stuff/, /node_modules/],
                 loader: "file-loader"
+            },
+            {
+                test: /\.(jpe?g|png|gif|svg)$/i,
+                exclude: [/elm-stuff/, /node_modules/],
+                loader: "file-loader"
             }
         ]
     }
-}
+};
 
-if (TARGET_ENV === 'development') {
-    console.log('Building for dev...');
-    module.exports =
-        merge(common, {
-            plugins: [
-                // Suggested for hot-loading
-                new webpack.NamedModulesPlugin(),
-                // Prevents compilation errors causing the hot loader to lose state
-                new webpack.NoEmitOnErrorsPlugin()
-            ],
-            module: {
-                rules: [{
+if (MODE === "development") {
+    console.log("Building for dev...");
+    module.exports = merge(common, {
+        plugins: [
+            // Suggested for hot-loading
+            new webpack.NamedModulesPlugin(),
+            // Prevents compilation errors causing the hot loader to lose state
+            new webpack.NoEmitOnErrorsPlugin()
+        ],
+        module: {
+            rules: [
+                {
                     test: /\.elm$/,
                     exclude: [/elm-stuff/, /node_modules/],
-                    use: [{
-                            loader: "elm-hot-loader"
-                        },
+                    use: [
+                        { loader: "elm-hot-webpack-loader" },
                         {
                             loader: "elm-webpack-loader",
-                            // add Elm's debug overlay to output
                             options: {
-                                debug: true,
-                                warn : true
+                                // add Elm's debug overlay to output
+                                debug: process.env.npm_lifecycle_event === "dev",
+                                forceWatch: true
                             }
                         }
                     ]
-                }]
-            },
-            devServer: {
-                inline: true,
-                stats: 'errors-only',
+                }
+            ]
+        },
+        devServer: {
+            inline: true,
+            stats: "errors-only",
+            contentBase: path.join(__dirname, "src/assets"),
+            historyApiFallback: true,
+            // feel free to delete this section if you don't need anything like this
+            before(app) {
+                // on port 3000
+                app.get("/test", function(req, res) {
+                    res.json({ result: "OK" });
+                });
             }
-        });
+        }
+    });
 }
-
-if (TARGET_ENV === 'production') {
-    console.log('Building for prod...');
-    module.exports =
-        merge(common, {
-            plugins: [
-                new CopyWebpackPlugin(
-                    [
-                        {
-                            from: 'src/assets/images',
-                            to: 'images/'
-                        }
-                    ]
-                ),
-                new webpack.optimize.UglifyJsPlugin()
-            ],
-            module: {
-                rules: [{
+if (MODE === "production") {
+    console.log("Building for Production...");
+    module.exports = merge(common, {
+        plugins: [
+            // Minify elm code
+            new elmMinify.WebpackPlugin(),
+            // Delete everything from /dist directory and report to user
+            new CleanWebpackPlugin(["dist"], {
+                root: __dirname,
+                exclude: [],
+                verbose: true,
+                dry: false
+            }),
+            // Copy static assets
+            new CopyWebpackPlugin([
+                {
+                    from: "src/assets"
+                }
+            ]),
+            new MiniCssExtractPlugin({
+                // Options similar to the same options in webpackOptions.output
+                // both options are optional
+                filename: "[name]-[hash].css"
+            })
+        ],
+        module: {
+            rules: [
+                {
                     test: /\.elm$/,
                     exclude: [/elm-stuff/, /node_modules/],
-                    use: [{
-                        loader: "elm-webpack-loader"
-                    }]
-                }]
-            }
-        });
+                    use: {
+                        loader: "elm-webpack-loader",
+                        options: {
+                            optimize: true
+                        }
+                    }
+                },
+                {
+                    test: /\.css$/,
+                    exclude: [/elm-stuff/, /node_modules/],
+                    loaders: [
+                        MiniCssExtractPlugin.loader,
+                        "css-loader?url=false"
+                    ]
+                },
+                {
+                    test: /\.scss$/,
+                    exclude: [/elm-stuff/, /node_modules/],
+                    loaders: [
+                        MiniCssExtractPlugin.loader,
+                        "css-loader?url=false",
+                        "sass-loader"
+                    ]
+                }
+            ]
+        }
+    });
 }
