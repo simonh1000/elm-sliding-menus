@@ -328,14 +328,14 @@ viewPage config lab st (MenuChoices ps curr _) =
             text err
 
         Ok lst ->
-            ul (class ("sliding-menu-page " ++ lab) :: Animation.render st ++ ulStyles) <|
+            ul (class ("sliding-menu-page " ++ lab) :: ulStyles ++ Animation.render st) <|
                 (if ps == [] then
                     text ""
 
                  else
                     li (onClick MoveUp :: liStyles)
                         [ span backStyles
-                            [ arrow2, text config.back ]
+                            [ chevronLeft, text config.back ]
                         ]
                 )
                     :: L.map mkLi lst
@@ -350,7 +350,7 @@ mkLi (Node item lst) =
     else
         li (onClick (MoveDown item) :: liStyles)
             [ span [] [ text item ]
-            , arrow
+            , chevronRight
             ]
 
 

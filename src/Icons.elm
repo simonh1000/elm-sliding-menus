@@ -1,10 +1,10 @@
-module Icons exposing (arrow, arrow2)
+module Icons exposing (chevronLeft, chevronRight)
 
 import Svg exposing (..)
 import Svg.Attributes as A
 
 
-arrow =
+chevronRight =
     svg
         [ A.height "24"
         , A.viewBox "0 0 24 24"
@@ -15,7 +15,7 @@ arrow =
         ]
 
 
-arrow2 =
+chevronLeft =
     svg
         [ A.fill "#000000"
         , A.height "24"

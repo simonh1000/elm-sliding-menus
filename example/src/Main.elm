@@ -39,13 +39,16 @@ update message model =
     case Debug.log "" message of
         MenuMsg msg ->
             let
-                ( menu, c1, maybeList ) =
+                ( menu, cmds, maybeList ) =
                     SlidingMenu.update myUpdateConfig msg model.menu
 
                 newModel =
-                    { model | menu = menu, userMessage = maybeList |> Maybe.withDefault model.userMessage }
+                    { model
+                        | menu = menu
+                        , userMessage = maybeList |> Maybe.withDefault model.userMessage
+                    }
             in
-            ( newModel, Cmd.map MenuMsg c1 )
+            ( newModel, Cmd.map MenuMsg cmds )
 
 
 
