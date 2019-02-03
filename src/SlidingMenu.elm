@@ -42,28 +42,30 @@ import List as L
 
 -}
 type Model
-    = Model
-        { pages : MenuChoices
-        , previous : Animation.Messenger.State Msg
-        , current : Animation.Messenger.State Msg
-        , next : Animation.Messenger.State Msg
-        }
+    = Model State
 
 
-{-| Private type:
-MenuChoices (previous choices in leaf --> root) current (maybe bext one)
+type alias State =
+    { pages : MenuChoices
+    , previous : Animation.Messenger.State Msg
+    , current : Animation.Messenger.State Msg
+    , next : Animation.Messenger.State Msg
+    }
+
+
+{-| Opaque type: MenuChoices (previous choices in leaf --> root) current (maybe bext one)
 -}
 type MenuChoices
     = MenuChoices (List String) String (Maybe String)
 
 
-{-| Opaque type that models a heirarchical menu.
+{-| Opaque type: models a heirarchical menu.
 -}
 type MenuItem
     = Node String (List MenuItem)
 
 
-{-| Helper function build parent MenuItem
+{-| Helper function to build parent MenuItem
 -}
 node : String -> List MenuItem -> MenuItem
 node =
@@ -89,24 +91,24 @@ subscriptions (Model model) =
     Animation.subscription Animate [ model.previous, model.current, model.next ]
 
 
-{-| -}
+{-| init
+-}
 init : Model
 init =
-    reset <| MenuChoices [] "root" Nothing
+    Model <| reset <| MenuChoices [] "root" Nothing
 
 
-reset : MenuChoices -> Model
+reset : MenuChoices -> State
 reset pages =
     let
         mkLeft x =
             Animation.style [ Animation.left (percent x) ]
     in
-    Model
-        { pages = pages
-        , previous = mkLeft -100.0
-        , current = mkLeft 0.0
-        , next = mkLeft 100.0
-        }
+    { pages = pages
+    , previous = mkLeft -100.0
+    , current = mkLeft 0.0
+    , next = mkLeft 100.0
+    }
 
 
 
@@ -155,12 +157,70 @@ type alias UpdateConfig =
 
 -}
 update : UpdateConfig -> Msg -> Model -> ( Model, Cmd Msg, Maybe (List String) )
-update config message ((Model m) as model) =
+update config message (Model model) =
+    let
+        ( state, cmd, mbMsg ) =
+            update_ config message model
+    in
+    ( Model state, cmd, mbMsg )
+
+
+update_ : UpdateConfig -> Msg -> State -> ( State, Cmd Msg, Maybe (List String) )
+update_ config message model =
     case message of
+        MoveUp ->
+            let
+                previous =
+                    queueWithMsg config OnUpComplete 0.0 model.previous
+
+                current =
+                    animateCurrent config 100.0 model.current
+            in
+            ( { model | previous = previous, current = current }, Cmd.none, Nothing )
+
+        MoveDown chosen ->
+            let
+                current =
+                    animateCurrent config -100.0 model.current
+
+                next =
+                    queueWithMsg config OnDownComplete 0.0 model.next
+
+                pages =
+                    case model.pages of
+                        MenuChoices ps curr _ ->
+                            MenuChoices ps curr (Just chosen)
+            in
+            ( { model | pages = pages, current = current, next = next }, Cmd.none, Nothing )
+
+        OnDownComplete ->
+            let
+                pages =
+                    case model.pages of
+                        MenuChoices ps curr (Just nxt) ->
+                            MenuChoices (curr :: ps) nxt Nothing
+
+                        _ ->
+                            model.pages
+            in
+            ( reset pages, Cmd.none, Just <| toList pages )
+
+        OnUpComplete ->
+            let
+                pages =
+                    case model.pages of
+                        MenuChoices (p :: ps) _ _ ->
+                            MenuChoices ps p Nothing
+
+                        _ ->
+                            Debug.log "Unexpected error MoveUp" model.pages
+            in
+            ( reset pages, Cmd.none, Just <| toList pages )
+
         OnLeafClick s ->
             let
                 pages =
-                    case m.pages of
+                    case model.pages of
                         MenuChoices ps curr _ ->
                             MenuChoices ps curr (Just s)
             in
@@ -169,69 +229,19 @@ update config message ((Model m) as model) =
         Animate msg ->
             let
                 ( next, cmdNext ) =
-                    Animation.Messenger.update msg m.next
+                    Animation.Messenger.update msg model.next
 
                 ( previous, cmdPrev ) =
-                    Animation.Messenger.update msg m.previous
+                    Animation.Messenger.update msg model.previous
             in
-            ( Model
-                { m
-                    | previous = previous
-                    , current = Animation.update msg m.current
-                    , next = next
-                }
+            ( { model
+                | previous = previous
+                , current = Animation.update msg model.current
+                , next = next
+              }
             , Cmd.batch [ cmdNext, cmdPrev ]
             , Nothing
             )
-
-        MoveUp ->
-            let
-                previous =
-                    queueWithMsg config OnUpComplete 0.0 m.previous
-
-                current =
-                    animateCurrent config 100.0 m.current
-            in
-            ( Model { m | previous = previous, current = current }, Cmd.none, Nothing )
-
-        MoveDown chosen ->
-            let
-                current =
-                    animateCurrent config -100.0 m.current
-
-                next =
-                    queueWithMsg config OnDownComplete 0.0 m.next
-
-                pages =
-                    case m.pages of
-                        MenuChoices ps curr _ ->
-                            MenuChoices ps curr (Just chosen)
-            in
-            ( Model { m | pages = pages, current = current, next = next }, Cmd.none, Nothing )
-
-        OnDownComplete ->
-            let
-                pages =
-                    case m.pages of
-                        MenuChoices ps curr (Just nxt) ->
-                            MenuChoices (curr :: ps) nxt Nothing
-
-                        _ ->
-                            m.pages
-            in
-            ( reset pages, Cmd.none, Just <| toList pages )
-
-        OnUpComplete ->
-            let
-                pages =
-                    case m.pages of
-                        MenuChoices (p :: ps) _ _ ->
-                            MenuChoices ps p Nothing
-
-                        _ ->
-                            Debug.log "Unexpected error MoveUp" m.pages
-            in
-            ( reset pages, Cmd.none, Just <| toList pages )
 
 
 animateCurrent : UpdateConfig -> Float -> Animation.Messenger.State Msg -> Animation.Messenger.State Msg
@@ -286,20 +296,25 @@ and the library animates the `left` style. You will need to add an appropriate `
 
 -}
 view : ViewConfig -> Model -> Html Msg
-view config ((Model m) as model) =
+view config (Model state) =
+    view_ config state
+
+
+view_ : ViewConfig -> State -> Html Msg
+view_ config state =
     div (class "sliding-menu-container" :: containerStyles) <|
-        case m.pages of
+        case state.pages of
             MenuChoices pps curr mbn ->
                 [ case pps of
                     p :: ps ->
-                        viewPage config "previous" m.previous (MenuChoices ps p (Just curr))
+                        viewPage config "previous" state.previous (MenuChoices ps p (Just curr))
 
                     [] ->
                         text ""
-                , viewPage config "current" m.current m.pages
+                , viewPage config "current" state.current state.pages
                 , case mbn of
                     Just next ->
-                        viewPage config "next" m.next (MenuChoices (curr :: pps) next Nothing)
+                        viewPage config "next" state.next (MenuChoices (curr :: pps) next Nothing)
 
                     Nothing ->
                         text ""

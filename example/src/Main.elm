@@ -36,7 +36,7 @@ myUpdateConfig =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update message model =
-    case message of
+    case Debug.log "" message of
         MenuMsg msg ->
             let
                 ( menu, c1, maybeList ) =
@@ -113,7 +113,7 @@ main =
         , update = update
         , view =
             \m ->
-                { title = "Elm 0.19 starter"
+                { title = "elm-sliding-menu example"
                 , body = [ view m ]
                 }
         , subscriptions = subscriptions
