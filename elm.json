@@ -3,7 +3,7 @@
     "name": "simonh1000/elm-sliding-menus",
     "summary": "Animated menus for mobile-first webapps",
     "license": "BSD-3-Clause",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "exposed-modules": [
         "SlidingMenu"
     ],
